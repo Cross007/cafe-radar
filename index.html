@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cafe Finder — Bangalore</title>
+  <title>Cafe Radar — Bangalore</title>
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-  <!-- Google Fonts: Inter -->
+  <!-- Google Fonts: Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -60,7 +60,7 @@
     .brand-pill {
       pointer-events: auto;
       align-self: flex-start;
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(8px);
       padding: 6px 14px;
       border-radius: 999px;
@@ -71,6 +71,7 @@
       display: flex;
       align-items: center;
       gap: 6px;
+      border: 1px solid rgba(226, 232, 240, 0.8);
     }
 
     .filter-pills {
@@ -156,7 +157,6 @@
       to { transform: rotate(360deg); }
     }
 
-    /* Leaflet Marker Styling */
     /* 1. Pulsing "You are here" Pin */
     .user-location-marker {
       position: relative;
@@ -217,7 +217,7 @@
       height: 18px;
     }
 
-    /* Leaflet Popup Styling Override */
+    /* Leaflet Popup Styling */
     .leaflet-popup-content-wrapper {
       padding: 0;
       border-radius: 16px;
@@ -235,7 +235,7 @@
       color: #94a3b8 !important;
     }
 
-    /* Cafe Info Card Inside Popup */
+    /* Cafe Info Card */
     .cafe-card {
       padding: 16px;
       background: #ffffff;
@@ -335,12 +335,12 @@
       DEFAULT_BANGALORE: [12.9716, 77.5946]
     };
 
-    // Curated fallback cafes to ensure instant display even if Overpass API is slow or offline
+    // Curated fallback cafes to guarantee instant display even if Overpass API is slow
     const CURATED_CAFES = [
       { name: "Araku Coffee", lat: 12.9723, lon: 77.6444, address: "12th Main Rd, HAL 2nd Stage, Indiranagar" },
       { name: "Blue Tokai Coffee Roasters", lat: 12.9711, lon: 77.6405, address: "Double Rd, Indiranagar" },
       { name: "Third Wave Coffee", lat: 12.9754, lon: 77.6391, address: "100 Feet Rd, Indiranagar" },
-      { name: "Glen's Bakehouse", lat: 12.9760, lon: 77.6418, address: "Lavelle Road & Indiranagar" },
+      { name: "Glen's Bakehouse", lat: 12.9760, lon: 77.6418, address: "Indiranagar, Bangalore" },
       { name: "The Hole in the Wall Cafe", lat: 12.9341, lon: 77.6234, address: "8th Main Rd, 4th Block, Koramangala" },
       { name: "DYU Art Cafe", lat: 12.9328, lon: 77.6212, address: "5th Block, Koramangala" },
       { name: "Third Wave Coffee Roasters", lat: 12.9360, lon: 77.6210, address: "4th Block, Koramangala" },
@@ -386,7 +386,6 @@
 
     // --- Map Initialization ---
     function initMap() {
-      // Default center at Indiranagar before user coords load
       map = L.map('map', {
         zoomControl: false
       }).setView(COORDS.INDIRANAGAR, 14);
@@ -394,19 +393,19 @@
       // Reposition Zoom Control to bottom-right
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-      // Clean, modern map tiles (CartoDB Positron)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      // 100% Free OpenStreetMap Tiles (No API key required)
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: '&copy; OpenStreetMap &copy; CARTO'
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
 
       cafeLayerGroup.addTo(map);
 
-      // Initial request: Browser Geolocation
+      // Request browser location
       getUserLocation();
     }
 
-    // --- Custom Leaflet Markers ---
+    // --- Custom Markers ---
     const cafeCustomIcon = L.divIcon({
       className: '',
       html: `
@@ -474,7 +473,6 @@
     async function fetchNearbyCafes(lat, lon) {
       showStatus("Finding cafes near you...");
 
-      // Overpass QL query: searches for cafes within a 2.5km radius
       const query = `
         [out:json][timeout:15];
         (
@@ -488,7 +486,7 @@
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s network timeout
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
 
         const response = await fetch(url, { signal: controller.signal });
         clearTimeout(timeoutId);
@@ -515,7 +513,6 @@
             };
           }));
         } else {
-          // If query yielded 0 results, use fallback curated data
           renderFallbackCafes(lat, lon);
         }
       } catch (err) {
@@ -526,9 +523,7 @@
       }
     }
 
-    // --- Fallback & Render Markers ---
     function renderFallbackCafes(lat, lon) {
-      // Filter curated cafes within 6km or display all
       const list = CURATED_CAFES.map(c => ({
         ...c,
         calculatedDist: userLocation ? calculateDistance(userLocation[0], userLocation[1], c.lat, c.lon) : null
@@ -593,7 +588,6 @@
       activeBtn.classList.add('active');
     }
 
-    // Event Listeners for Filters
     document.getElementById('btn-near-me').addEventListener('click', function() {
       setActivePill(this);
       getUserLocation();
@@ -609,7 +603,6 @@
       jumpToLocation(COORDS.KORAMANGALA[0], COORDS.KORAMANGALA[1]);
     });
 
-    // Start App
     window.addEventListener('DOMContentLoaded', initMap);
   </script>
 </body>
